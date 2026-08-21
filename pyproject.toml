@@ -24,6 +24,10 @@ litellm = [
 mongo = [
     "pymongo>=0",
 ]
+baseline = [
+    "langchain-core==1.4.9",
+    "litellm==1.84.0",
+]
 dev = [
     "build>=1.2",
     "pytest>=8.0",
@@ -42,3 +46,6 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
+per-file-ignores = {"reference/token_usage.py" = ["BLE001", "S110", "UP006", "UP035", "UP045"]}

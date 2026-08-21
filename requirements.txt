@@ -1,0 +1,10 @@
+# Hyperion core has no third-party runtime dependencies.
+# These packages support the current reference baseline and development checks.
+
+build>=1.2
+pytest>=8.0
+ruff>=0.6
+
+# Reference callback implementations verified against the source application.
+langchain-core==1.4.9
+litellm==1.84.0
