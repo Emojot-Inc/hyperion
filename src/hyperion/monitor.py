@@ -6,6 +6,7 @@ import hashlib
 import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from threading import Lock
 from typing import Any
 
 from hyperion.events import UsageEvent
@@ -42,6 +43,20 @@ class SinkErrorReport:
 SinkErrorCallback = Callable[[SinkErrorReport], None]
 
 
+@dataclass(frozen=True, slots=True)
+class UsageMonitorStats:
+    """Immutable counters for one monitor.
+
+    ``delivered`` counts successful sink deliveries, so one event sent to three sinks
+    contributes three.  ``sink_failures`` likewise counts failed sink attempts.
+    """
+
+    emitted: int = 0
+    delivered: int = 0
+    sink_failures: int = 0
+    truncated_details: int = 0
+
+
 class UsageMonitor:
     """Dispatches usage events to a fixed snapshot of configured sinks.
 
@@ -55,10 +70,23 @@ class UsageMonitor:
         *,
         on_sink_error: SinkErrorCallback | None = None,
         logger: Any | None = None,
+        diagnostic_logging: bool = True,
+        enabled: bool = True,
     ) -> None:
         self._sinks = tuple(sinks)
         self._on_sink_error = on_sink_error
         self._logger = logging.getLogger(__name__) if logger is None else logger
+        if not isinstance(diagnostic_logging, bool):
+            raise TypeError("diagnostic_logging must be bool")
+        if not isinstance(enabled, bool):
+            raise TypeError("enabled must be bool")
+        self._diagnostic_logging = diagnostic_logging
+        self._enabled = enabled
+        self._stats_lock = Lock()
+        self._emitted = 0
+        self._delivered = 0
+        self._sink_failures = 0
+        self._truncated_details = 0
 
     @property
     def sinks(self) -> tuple[UsageEventSink, ...]:
@@ -69,11 +97,33 @@ class UsageMonitor:
     def emit(self, event: UsageEvent) -> None:
         """Emit an event to all configured sinks, isolating sink failures."""
 
+        if not self._enabled:
+            return
+        with self._stats_lock:
+            self._emitted += 1
+            if event.details_truncated:
+                self._truncated_details += 1
         for sink in self._sinks:
             try:
                 sink.emit(event)
             except Exception as exc:  # noqa: BLE001 - sink failures must not escape
+                with self._stats_lock:
+                    self._sink_failures += 1
                 self._report_sink_error(sink, event, exc)
+            else:
+                with self._stats_lock:
+                    self._delivered += 1
+
+    def stats(self) -> UsageMonitorStats:
+        """Return a thread-safe immutable snapshot of monitor counters."""
+
+        with self._stats_lock:
+            return UsageMonitorStats(
+                emitted=self._emitted,
+                delivered=self._delivered,
+                sink_failures=self._sink_failures,
+                truncated_details=self._truncated_details,
+            )
 
     def _report_sink_error(
         self,
@@ -86,10 +136,11 @@ class UsageMonitor:
             if self._on_sink_error is not None:
                 self._on_sink_error(report)
                 return
-            self._logger.warning(
-                "Hyperion sink failed while emitting usage event",
-                extra=report.to_log_extra(),
-            )
+            if self._diagnostic_logging:
+                self._logger.warning(
+                    "Hyperion sink failed while emitting usage event",
+                    extra=report.to_log_extra(),
+                )
         except Exception:  # noqa: BLE001 - reporting must not break model calls
             return
 
@@ -113,4 +164,4 @@ def _sanitized_report_event_id(event_id: str) -> str:
     return "evt_" + digest[:32]
 
 
-__all__ = ["SinkErrorCallback", "SinkErrorReport", "UsageMonitor"]
+__all__ = ["SinkErrorCallback", "SinkErrorReport", "UsageMonitor", "UsageMonitorStats"]

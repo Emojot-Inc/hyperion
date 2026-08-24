@@ -39,7 +39,7 @@ def test_monitor_emits_to_sinks_in_configured_order_and_retains_duplicates():
     first = RecordingSink()
     second = RecordingSink()
     monitor = UsageMonitor([first, second])
-    event = UsageEvent(request_id="req-1", timestamp=1.0)
+    event = UsageEvent(request_id="req-1", start_time=1.0, end_time=1.0)
 
     monitor.emit(event)
     monitor.emit(event)
@@ -55,7 +55,7 @@ def test_monitor_uses_fixed_sink_snapshot():
     second = RecordingSink()
     sinks.append(second)
 
-    event = UsageEvent(request_id="req-1", timestamp=1.0)
+    event = UsageEvent(request_id="req-1", start_time=1.0, end_time=1.0)
     monitor.emit(event)
 
     assert first.events == [event]
@@ -68,7 +68,7 @@ def test_monitor_isolates_sink_failures_and_reports_them():
     after_failure = RecordingSink()
     reports: list[SinkErrorReport] = []
     monitor = UsageMonitor([failed, after_failure], on_sink_error=reports.append)
-    event = UsageEvent(request_id="req-1", timestamp=1.0)
+    event = UsageEvent(request_id="req-1", start_time=1.0, end_time=1.0)
 
     monitor.emit(event)
 
@@ -86,7 +86,7 @@ def test_monitor_sink_error_callback_receives_no_raw_failure_objects_or_messages
     failed = FailingSink(f"database unavailable: {secret}")
     reports: list[SinkErrorReport] = []
     monitor = UsageMonitor([failed], on_sink_error=reports.append)
-    event = UsageEvent(request_id="req-secret", timestamp=1.0)
+    event = UsageEvent(request_id="req-secret", start_time=1.0, end_time=1.0)
 
     monitor.emit(event)
 
@@ -109,7 +109,12 @@ def test_monitor_sanitizes_explicit_event_id_in_sink_error_reports_and_logs():
     failed = FailingSink(f"database unavailable: {exception_secret}")
     reports: list[SinkErrorReport] = []
     monitor = UsageMonitor([failed], on_sink_error=reports.append)
-    event = UsageEvent(event_id=event_id_secret, request_id="req-secret", timestamp=1.0)
+    event = UsageEvent(
+        event_id=event_id_secret,
+        request_id="req-secret",
+        start_time=1.0,
+        end_time=1.0,
+    )
 
     monitor.emit(event)
 
@@ -138,7 +143,7 @@ def test_monitor_sanitizes_explicit_event_id_in_sink_error_reports_and_logs():
 def test_monitor_default_sink_error_report_excludes_sink_repr_and_configuration():
     logger = RecordingLogger()
     monitor = UsageMonitor([SecretReprFailingSink()], logger=logger)
-    event = UsageEvent(request_id="req-1", timestamp=1.0)
+    event = UsageEvent(request_id="req-1", start_time=1.0, end_time=1.0)
 
     monitor.emit(event)
 
@@ -161,7 +166,7 @@ def test_monitor_default_sink_error_log_excludes_exception_message_and_traceback
     secret = "sk-secret-logger"
     logger = RecordingLogger()
     monitor = UsageMonitor([FailingSink(f"database unavailable: {secret}")], logger=logger)
-    event = UsageEvent(request_id="req-1", timestamp=1.0)
+    event = UsageEvent(request_id="req-1", start_time=1.0, end_time=1.0)
 
     monitor.emit(event)
 
