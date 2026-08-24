@@ -1,1 +1,5 @@
-"""Event sinks for logs, files, memory and optional persistence backends."""
+"""Core event sinks."""
+
+from hyperion.sinks.memory import MemorySink
+
+__all__ = ["MemorySink"]
