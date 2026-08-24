@@ -1,0 +1,12 @@
+# Hyperion core has no third-party runtime dependencies.
+# This is a pip-compatible mirror of the non-published [dependency-groups].dev
+# group for environments whose pip does not yet support PEP 735 groups.
+
+build>=1.2
+pytest>=8.0
+ruff>=0.6
+tomli>=2.0; python_version < '3.11'
+
+# Pinned reference callback implementations used by characterization tests.
+langchain-core==1.4.9
+litellm==1.84.0
