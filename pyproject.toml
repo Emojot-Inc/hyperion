@@ -1,18 +1,28 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "hyperion"
 version = "0.1.0"
-description = "Provider-neutral LLM usage monitoring and cost instrumentation."
+description = "Provider-neutral LLM usage monitoring and integration telemetry."
 readme = "README.md"
-requires-python = ">=3.10"
-license = {text = "TBD"}
+requires-python = ">=3.10,<3.15"
+license = "Apache-2.0"
 authors = [
-    {name = "TBD"},
+    {name = "Emojot"},
 ]
 dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+]
 
 [project.optional-dependencies]
 langchain = [
@@ -21,17 +31,21 @@ langchain = [
 litellm = [
     "litellm>=0",
 ]
-mongo = [
-    "pymongo>=0",
+all = [
+    "litellm>=0",
+    "langchain-core>=0",
 ]
+[dependency-groups]
 baseline = [
     "langchain-core==1.4.9",
     "litellm==1.84.0",
 ]
 dev = [
+    {include-group = "baseline"},
     "build>=1.2",
     "pytest>=8.0",
     "ruff>=0.6",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [tool.setuptools]
